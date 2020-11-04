@@ -1,0 +1,128 @@
+---
+title: "Santa Barbara Urchins"
+author: "Ian Brunjes"
+date: "11/3/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(janitor)
+library(here)
+library(kableExtra)
+library(lubridate)
+```
+
+## Overview
+
+In this document, we will use data wrangling, analysis & visualization skills to explore red and purple urchins recorded by Santa Barbara Coastal Long Term Ecological Research program divers, while practicing version control and project management.
+
+## Data
+
+Reed, D. 2020. SBC LTER: Reef: Long-term experiment: Kelp removal: Urchin size frequency distribution ver 20. Environmental Data Initiative. https://doi.org/10.6073/pasta/5a1e9ef03aa47bd2225c0bb98a02a63b.
+
+```{r, message=FALSE}
+urchins <- read_csv(here("data", "urchins.csv")) %>%
+  clean_names() # reformat column names
+```
+
+
+## Section 1: Size Comparisons of Purple & Red Urchins
+
+### Exploratory Data Visualization
+
+Faceted histogram:
+
+```{r, message=FALSE}
+urchins %>% ggplot(aes(x = size, fill = common_name)) +
+  geom_histogram(color= "black") +
+  facet_wrap(~common_name) +
+  scale_fill_manual(values = c("purple", "red")) +
+  theme(legend.position = "none") +
+  xlab("Urchin Diameter (cm)")
+```
+
+Boxplot:
+
+```{r, message=FALSE}
+urchins %>% ggplot(aes(x = common_name, y = size, color = common_name)) +
+  geom_boxplot() +
+  theme_grey() +
+  scale_color_manual(values = c("purple","red")) +
+  theme(legend.position = "none") +
+  ylab("Urchin Diameter (cm)") +
+  xlab("Species")
+```
+
+
+### Descriptive Statistics Table
+
+Derive the mean, median, and standard deviation, and min & max values of size for each urchin type, as well their counts.
+
+```{r, message=FALSE}
+urchins_stats <- urchins %>%
+  group_by(common_name) %>% 
+  summarize(
+    mean = mean(size),
+    median = median(size),
+    sd = sd(size),
+    count = n(),
+    min = min(size),
+    max = max(size)
+  )
+
+kable(urchins_stats) # output the stats table nicely
+```
+
+### Analysis
+
+From our initial summary and review of the data, it seems the Red Urchins tend to grow to a larger diameter than Purple Urchins. This difference can be seen in the percentage difference of their means, whereby the mean diameter of Red Urchins was 51.6% larger than that of Purple Urchins. Though it is not necessarily indicative of any reliable pattern between the species, we also observe that the maximum recorded specimen size for Red Urchin greatly exceeds the largest recorded Purple Urchin.
+
+## Section 2: Purple Urchin Counts by Site & Year
+
+### Filtering the Data
+
+Select only Purple Urchin observations, format data column, and add full site name column.
+
+```{r, message=FALSE}
+purple_urchins <- urchins %>% 
+  filter(common_name == "Purple Urchin") %>% 
+  mutate(date = mdy(date))  %>% 
+  mutate(year = year(date)) %>% 
+  mutate(site_full = case_when(
+    site == "NAPL" ~ "Naples Reef",
+    site == "AQUE" ~ "Arroyo Quemado Reef",
+    site == "CARP" ~ "Carpinteria Reef",
+    site == "MOHK" ~ "Mohawk Reef",
+    site == "IVEE" ~ "Isla Vista Reef"
+  ))
+```
+
+### Descriptive Statistics Table
+
+Derive the total number of Purple Urchins observed by site and year.
+
+```{r, message=FALSE}
+purple_urchins_counts <- purple_urchins %>% 
+  group_by(site_full, year) %>% 
+  count(name = "count")
+```
+
+### Exploratory Data Visualization
+
+Plot the counts of Purple Urchins recorded at each site over time.
+
+```{r}
+purple_urchins_counts %>% ggplot(aes(x = year, y = count, color = site_full)) +
+  geom_line() +
+  scale_x_continuous(name = "Year", breaks = seq(2008,2020,1)) +
+  labs(
+    y = "Number of Purple Sea Urchins",
+    color = "Site"
+  )
+  
+```
+
+
+
