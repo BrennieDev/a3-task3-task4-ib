@@ -16,7 +16,7 @@ library(lubridate)
 
 ## Overview
 
-In this document, we will use data wrangling, analysis & visualization skills to explore red and purple urchins recorded by Santa Barbara Coastal Long Term Ecological Research program divers, while practicing version control and project management.
+In this document, we will use data wrangling, analysis & visualization skills to explore Red and Purple Urchins recorded by Santa Barbara Coastal Long Term Ecological Research program divers, while practicing version control and project management.
 
 ## Data
 
@@ -72,7 +72,7 @@ urchins_stats <- urchins %>%
     max = max(size)
   )
 
-kable(urchins_stats) # output the stats table nicely
+kable(urchins_stats) %>%  kable_styling() # output the stats table nicely
 ```
 
 ### Analysis

@@ -1,0 +1,107 @@
+---
+title: "Naples Reef Purple Urchins"
+author: "Ian Brunjes"
+date: "11/3/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(janitor)
+library(here)
+library(kableExtra)
+library(lubridate)
+```
+
+## Overview
+
+In this document, we will use data wrangling, analysis & visualization skills to run t-tests against samples of Purple Urchin sizes at Naples Reef in January 2010, recorded by Santa Barbara Coastal Long Term Ecological Research program divers, while practicing version control and project management.
+
+## Data
+
+Reed, D. 2020. SBC LTER: Reef: Long-term experiment: Kelp removal: Urchin size frequency distribution ver 20. Environmental Data Initiative. https://doi.org/10.6073/pasta/5a1e9ef03aa47bd2225c0bb98a02a63b.
+
+```{r, message=FALSE}
+urchins <- read_csv(here("data", "urchins.csv")) %>%
+  clean_names() # reformat column names
+```
+
+## Data Wrangling
+
+Filter the data to observations of Purple Urchins at the Naples Reef site in January of 2010.
+
+```{r, message=FALSE}
+purple_urchins <- urchins %>%
+  mutate(date = mdy(date)) %>% 
+  filter(
+    site == "NAPL",
+    common_name == "Purple Urchin",
+    year(date) == 2010,
+    month(date) == 1
+  )
+```
+
+
+## Exploratory Data Visualization
+
+Histograms:
+
+```{r, message=FALSE}
+purple_urchins %>% ggplot(aes(x = size)) +
+  geom_histogram() +
+  facet_wrap(~treatment)
+```
+
+QQ-Plots:
+
+```{r}
+purple_urchins %>% ggplot(aes(sample = size)) +
+  geom_qq() +
+  facet_wrap(~treatment)
+```
+
+Each group displays a somewhat bell-shaped curve in its histogram that would indicate a normal distribution. Similarly in each of the QQ-plots, we see an indication of normal distribution in that the points appear to fall about a straight line.
+
+## Descriptive Statistics
+
+Derive the mean, median, and standard deviation of sizes in each of the treatment groups, as well as their counts.
+
+```{r, message=FALSE}
+purple_urchins_stats <- purple_urchins %>% 
+  group_by(treatment) %>% 
+  summarize(
+    mean = mean(size),
+    median = median(size),
+    sd = sd(size),
+    count = n()
+  )
+
+kable(purple_urchins_stats) %>%  kable_styling()
+```
+
+## Two Sample t-test
+
+Create vectors containing observations for each sample.
+
+```{r}
+annual_urchins_sample <- purple_urchins %>% 
+  filter(treatment == "ANNUAL") %>% 
+  pull(size)
+
+control_urchins_sample <- purple_urchins %>% 
+  filter(treatment == "CONTROL") %>% 
+  pull(size)
+```
+
+Run 2-sample t-test using these vectors.
+
+```{r, message=FALSE}
+t.test(x = annual_urchins_sample, y = control_urchins_sample)
+```
+
+From our t-test, we see the mean size for the ANNUAL group is 0.190861 (or approximately 5.1%) higher than mean size for the CONTROL group. There is a 95% chance that a random sampling taken from each group would result in a difference in the mean of ANNUAL versus CONTROL of between -0.14 and 0.52 centimeters.
+
+If these samples are indeed drawn from populations that have the same mean size (which is our null hypothesis), there is a 25.36% chance that two random samples from these populations would result in samples that are at least as different as the ones observed here. What this means is that if there was no difference in size between ANNUAL and CONTROL group, there is only a 25.36% chance that a random sampling of this population would result in a difference in mean that is at least as much as we have here.
+
+
